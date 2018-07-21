@@ -9,14 +9,14 @@
 #     https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://doc.scrapy.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = 'tudogostoso'
+BOT_NAME = 'receitas_crawler'
 
-SPIDER_MODULES = ['tudogostoso.spiders']
-NEWSPIDER_MODULE = 'tudogostoso.spiders'
+SPIDER_MODULES = ['receitas_crawler.spiders']
+NEWSPIDER_MODULE = 'receitas_crawler.spiders'
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = 'tudogostoso (+http://www.yourdomain.com)'
+#USER_AGENT = 'receitas_crawler (+http://www.yourdomain.com)'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
