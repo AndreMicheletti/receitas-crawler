@@ -1,5 +1,4 @@
 import scrapy
-import json
 import os
 
 from database import Recipe
@@ -15,7 +14,6 @@ class AllRecipesSpider(scrapy.Spider):
     COUNTER = 0
 
     def start_requests(self):
-        os.mkdir('./downloaded')
         urls = [
             "http://allrecipes.com.br/receitas/sobremesa-receitas.aspx?page=2",
         ]
@@ -40,6 +38,10 @@ class AllRecipesSpider(scrapy.Spider):
             yield scrapy.Request(url=next_page, callback=self.parse_list_page)
 
     def parse_recipe(self, response):
+        from mongoengine import connect
+        # from database import MONGO_CONN_STRING
+
+        connect(db='recipes')
 
         def itemprop_search(search_for, tag="span", item=response):
             return item.xpath(f'//{tag}[contains(@itemprop, "{search_for}")]')
@@ -51,7 +53,7 @@ class AllRecipesSpider(scrapy.Spider):
         recipe_name = recipe_name.strip()
 
         # category
-        recipe_category = itemprop_search("title", item=response.css("ul.breadcrumb")).extract()[2]
+        recipe_category = itemprop_search("title", item=response.css("ul.breadcrumb")).css("span::text").extract()[2]
 
         # potion yield
         portion_yield = itemprop_search("recipeYield", tag="small").css("span.accent::text").extract_first()
@@ -65,7 +67,12 @@ class AllRecipesSpider(scrapy.Spider):
         ingredients = itemprop_search("ingredients").css("span::text").extract()
 
         new_recipe.name = recipe_name
-        new_recipe.category = recipe_category
+        new_recipe.url = response.url
+        new_recipe.category = recipe_category.lower()
         new_recipe.photo = response.meta['recipe_photo']
         new_recipe.portion_yield = portion_yield
         new_recipe.instructions = recipe_instructions
+        new_recipe.parse_and_save_ingredient_strings(ingredients)
+        Recipe.objects.insert(new_recipe)
+
+        self.log(f'SAVED NEW RECIPE! {new_recipe.name}')

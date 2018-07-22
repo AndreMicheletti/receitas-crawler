@@ -6,20 +6,34 @@ measures_types = {
     'g': ['g', 'g.', 'gs', 'gramas', 'grama'],
 
     # UNIDADES
-    'un': ['unidades', 'un', 'un.'],
+    'un': ['unidades', 'un', 'un.', 'embalagem', 'caixa', 'caixas', 'embalagens'],
 
     # LITROS
     'l': ['l', 'l.', 'lt', 'lt.', 'lts', 'lts.', 'litros', 'litro'],
 
     # MLS
-    'ml': ['ml', 'ml.', 'mls', 'mls.']
+    'ml': ['ml', 'ml.', 'mls', 'mls.'],
+
+    # XÍCARA
+    'xiraca': ['xícara', 'xícaras', 'xicara', 'xicaras'],
+
+    # LATAS
+    'lata': ['lata', 'latas'],
+
+    # COLHER
+    'colher': ['colher', 'colheres']
 }
 
-remove_words = ['de']
+remove_words = ['de', 'gosto', 'cheia', 'cheio']
 
 
 def is_number(x):
     try:
+        if '/' in x:
+            v1, v2 = x.split('/')
+            v1 = float(v1)
+            v2 = float(v2)
+            return x
         return float(x)
     except ValueError:
         return False
@@ -29,7 +43,7 @@ class EmbeddedIngredient(EmbeddedDocument):
 
     name = StringField()
     quantity = IntField()
-    measure = StringField(choices=measures_types.keys())
+    measure = StringField()
 
 
 class Recipe(Document):
@@ -40,9 +54,9 @@ class Recipe(Document):
 
     photo = StringField(default="")
 
-    ingredients = ListField(EmbeddedIngredient)
+    ingredients = ListField(EmbeddedDocumentField(EmbeddedIngredient))
 
-    instructions = ListField(StringField)
+    instructions = ListField(StringField())
 
     portion_yield = IntField()
 
@@ -54,13 +68,19 @@ class Recipe(Document):
         'db-alias': 'recipes-db'
     }
 
+    def __repr__(self):
+        return f'<Recipe {str(self.id)} - {self.name}>'
+
     def parse_and_save_ingredient_strings(self, ingredients_list):
         self.ingredients = [Recipe.parse_ingredient(ing) for ing in ingredients_list]
 
     @staticmethod
     def parse_ingredient(ingredient_str) -> EmbeddedIngredient:
 
-        words = [w.lower() for w in ingredient_str.split(' ') if w not in remove_words]
+        ingredient_str = ingredient_str.replace('a gosto', '')
+
+        words = [w.strip().lower() for w in ingredient_str.split(' ') if w not in remove_words]
+        words = [w for w in words if '(' not in w and ')' not in w]
         selected_measure_type = 'un'
 
         for measure_type, measure_words in measures_types.items():
