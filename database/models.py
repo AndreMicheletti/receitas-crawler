@@ -50,7 +50,7 @@ class Recipe(Document):
 
     name = StringField(required=True)
     url = URLField(required=True, unique=True)
-    category = StringField(required=True)
+    category = StringField(required=True, choices=["doce", "salgado"])
 
     photo = StringField(default="")
 

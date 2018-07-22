@@ -1,5 +1,6 @@
 from database.models import Recipe
 
+
 # response.css("ul.breadcrumb").xpath(f'//span[contains(@itemprop, "ingredients")]').css("span::text").extract()
 
 def test_parse_ingredients():
@@ -8,6 +9,8 @@ def test_parse_ingredients():
 
     recipe.parse_and_save_ingredient_strings(ings)
     print(recipe.ingredients)
+
+    recipe = Recipe.objects().first()
 
     # bananas
     assert recipe.ingredients[0].name == 'bananas em rodelas'
