@@ -52,9 +52,9 @@ class AllRecipesSpider(scrapy.Spider):
 
     def parse_recipe(self, response):
         from mongoengine import connect
-        # from database import MONGO_CONN_STRING
+        from database import MONGO_CONN_STRING_MASTER
 
-        connect(db='recipes')
+        connect(db='recipes', host=MONGO_CONN_STRING_MASTER)
 
         def itemprop_search(search_for, tag="span", item=response):
             return item.xpath(f'//{tag}[contains(@itemprop, "{search_for}")]')
