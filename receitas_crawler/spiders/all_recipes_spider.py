@@ -6,6 +6,8 @@ from database import Recipe
 
 BASE_URL = "http://allrecipes.com.br"
 
+MAX_PAGES_CRAWLED = int(os.getenv("MAX_PAGES", 5))
+
 
 class AllRecipesSpider(scrapy.Spider):
 
@@ -43,7 +45,7 @@ class AllRecipesSpider(scrapy.Spider):
                 yield req
 
         next_page = response.css("a.pageNext::attr(href)").extract_first()
-        if next_page and self.COUNTER < 5:
+        if next_page and self.COUNTER < MAX_PAGES_CRAWLED:
             self.log(f'NEXT PAGE: {next_page}')
             self.COUNTER += 1
             req = scrapy.Request(url=next_page, callback=self.parse_list_page)
@@ -52,9 +54,12 @@ class AllRecipesSpider(scrapy.Spider):
 
     def parse_recipe(self, response):
         from mongoengine import connect
-        from database import MONGO_CONN_STRING_MASTER
 
-        connect(db='recipes', host=MONGO_CONN_STRING_MASTER)
+        if os.getenv("DB", "") == "PROD":
+            from database import MONGO_CONN_STRING_MASTER
+            connect(db='recipes', host=MONGO_CONN_STRING_MASTER)
+        else:
+            connect(db='recipes')
 
         def itemprop_search(search_for, tag="span", item=response):
             return item.xpath(f'//{tag}[contains(@itemprop, "{search_for}")]')

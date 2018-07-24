@@ -42,7 +42,7 @@ def is_number(x):
 class EmbeddedIngredient(EmbeddedDocument):
 
     name = StringField()
-    quantity = IntField()
+    quantity = StringField()
     measure = StringField()
 
 
@@ -98,6 +98,6 @@ class Recipe(Document):
 
         result = EmbeddedIngredient()
         result.name = " ".join(words)
-        result.quantity = quantity
+        result.quantity = str(quantity)
         result.measure = selected_measure_type
         return result
