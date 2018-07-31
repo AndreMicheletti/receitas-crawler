@@ -1,5 +1,6 @@
 import scrapy
 import os
+from unidecode import unidecode
 
 from database import Recipe
 
@@ -55,11 +56,11 @@ class AllRecipesSpider(scrapy.Spider):
     def parse_recipe(self, response):
         from mongoengine import connect
 
-        if os.getenv("DB", "") == "PROD":
-            from database import MONGO_CONN_STRING_MASTER
-            connect(db='recipes', host=MONGO_CONN_STRING_MASTER)
-        else:
-            connect(db='recipes')
+        # if os.getenv("DB", "") == "PROD":
+        from database import MONGO_CONN_STRING_MASTER
+        connect(db='recipes', host=MONGO_CONN_STRING_MASTER)
+        # else:
+            # connect(db='recipes')
 
         def itemprop_search(search_for, tag="span", item=response):
             return item.xpath(f'//{tag}[contains(@itemprop, "{search_for}")]')
@@ -81,13 +82,30 @@ class AllRecipesSpider(scrapy.Spider):
         # ingredients
         ingredients = itemprop_search("ingredients").css("span::text").extract()
 
-        new_recipe.name = recipe_name
-        new_recipe.url = response.url
-        new_recipe.category = response.meta['category']
-        new_recipe.photo = response.meta['recipe_photo']
-        new_recipe.portion_yield = portion_yield
-        new_recipe.instructions = recipe_instructions
-        new_recipe.parse_and_save_ingredient_strings(ingredients)
-        Recipe.objects.insert(new_recipe)
+        # recipe photo
+        recipe_photo = response.meta['recipe_photo']
+        if 'http://' not in recipe_photo:
+            recipe_photo = f'http://{recipe_photo}'
 
-        self.log(f'SAVED NEW {new_recipe.category} RECIPE! {new_recipe.name}')
+        saved = Recipe.objects(url=response.url).only('id', 'name', 'url').first()
+        if saved:
+            Recipe.objects(id=saved.id).update_one(
+                category=response.meta['category'],
+                photo=recipe_photo,
+                portion_yield=portion_yield,
+                instructions=recipe_instructions,
+                ingredients_pretty=ingredients,
+                ingredients=Recipe.parse_ingredient_strings(ingredients)
+            )
+            self.log(f'UPDATED RECIPE! {saved.name}')
+        else:
+            new_recipe.name = recipe_name
+            new_recipe.url = response.url
+            new_recipe.category = response.meta['category']
+            new_recipe.photo = response.meta['recipe_photo']
+            new_recipe.portion_yield = portion_yield
+            new_recipe.instructions = recipe_instructions
+            new_recipe.ingredients_pretty = ingredients
+            new_recipe.parse_and_save_ingredient_strings(ingredients)
+            Recipe.objects.insert(new_recipe)
+            self.log(f'SAVED NEW {new_recipe.category} RECIPE! {new_recipe.name}')
